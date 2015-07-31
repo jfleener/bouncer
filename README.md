@@ -6,7 +6,7 @@ Validation for go http handlers
 ```go
     
     type Foo struct {
-        Id    int64   `datastore:"-" json:"-" create:"-" patch:"-"`
+        Id    int64   json:"-" create:"-" patch:"-"`
         Name  string  `json:"name" create:"required"`
     }
 
