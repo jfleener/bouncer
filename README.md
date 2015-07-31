@@ -1,4 +1,4 @@
-# go-bouncer
+# Bouncer
 Validation for go http handlers
 
 ## Usage
