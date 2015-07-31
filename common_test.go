@@ -24,7 +24,7 @@ type (
 	}
 
 	// The common function signature of the handlers going under test.
-	handlerFunc func(interface{}, http.Handler) http.Handler
+	handlerFunc    func(interface{}, http.Handler) http.Handler
 	validationFunc func(interface{}, *http.Request) Errors
 )
 

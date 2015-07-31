@@ -1,69 +1,69 @@
 package bouncer
+
 import (
-	"testing"
-	"net/http/httptest"
 	"io"
-	"strings"
 	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
 )
 
 type (
 	jsonTestCase struct {
 		description         string
-		method string
+		method              string
 		withInterface       bool
 		shouldSucceedOnJson bool
 		shouldFailOnBind    bool
 		payload             string
 		contentType         string
-		ifaceType interface{}
+		ifaceType           interface{}
 	}
 )
 
 var jsonTestCases = []jsonTestCase{
 
 	{
-		description: "Create Foo",
-		method: "POST",
+		description:         "Create Foo",
+		method:              "POST",
 		shouldSucceedOnJson: true,
-		payload:	`{"title":"Foo Title", "content": "Foo Content"}`,
-		contentType:	jsonContentType,
-		ifaceType:	Foo{},
+		payload:             `{"title":"Foo Title", "content": "Foo Content"}`,
+		contentType:         jsonContentType,
+		ifaceType:           Foo{},
 	},
 	{
-		description: "Create Foo with missing fields",
-		method: "POST",
+		description:         "Create Foo with missing fields",
+		method:              "POST",
 		shouldSucceedOnJson: false,
-		payload:	`{"content": "Foo Content"}`,
-		contentType:	jsonContentType,
-		ifaceType:	Foo{},
+		payload:             `{"content": "Foo Content"}`,
+		contentType:         jsonContentType,
+		ifaceType:           Foo{},
 	},
 	{
-		description: "Create Foo with immutable fields",
-		method: "POST",
+		description:         "Create Foo with immutable fields",
+		method:              "POST",
 		shouldSucceedOnJson: false,
-		payload:	`{"title":"Foo Title", "content": "Foo Content", "create_ignored":"bar"}`,
-		contentType:	jsonContentType,
-		ifaceType:	Foo{},
+		payload:             `{"title":"Foo Title", "content": "Foo Content", "create_ignored":"bar"}`,
+		contentType:         jsonContentType,
+		ifaceType:           Foo{},
 	},
 	{
-		description: "Patch Foo",
-		method: "PATCH",
+		description:         "Patch Foo",
+		method:              "PATCH",
 		shouldSucceedOnJson: true,
-		payload:	`{"content": "New Foo Content"}`,
-		contentType:	jsonContentType,
-		ifaceType:	Foo{},
+		payload:             `{"content": "New Foo Content"}`,
+		contentType:         jsonContentType,
+		ifaceType:           Foo{},
 	},
 	{
-		description: "Patch Foo with immutable fields",
-		method: "PATCH",
+		description:         "Patch Foo with immutable fields",
+		method:              "PATCH",
 		shouldSucceedOnJson: false,
-		payload:	`{"title":"Foo Title", "content": "Foo Content"}`,
-		contentType:	jsonContentType,
-		ifaceType:	Foo{},
+		payload:             `{"title":"Foo Title", "content": "Foo Content"}`,
+		contentType:         jsonContentType,
+		ifaceType:           Foo{},
 	},
 }
-
 
 func TestJson(t *testing.T) {
 	for _, testCase := range jsonTestCases {
@@ -108,7 +108,7 @@ func performJsonTest(t *testing.T, testCase jsonTestCase) {
 		panic("Something bad happened on '" + testCase.description + "'")
 	default:
 		if testCase.shouldSucceedOnJson &&
-		httpRecorder.Code != http.StatusOK {
+			httpRecorder.Code != http.StatusOK {
 			t.Errorf("'%s' should have succeeded, but returned HTTP status %d with body '%s'",
 				testCase.description, httpRecorder.Code, httpRecorder.Body.String())
 		}
