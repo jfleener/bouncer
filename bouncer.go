@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"reflect"
 	"strings"
+    "github.com/gorilla/context"
 )
 
 const (
@@ -86,6 +87,7 @@ func Json(jsonStruct interface{}, req *http.Request) Errors {
 
 	if req.Body != nil {
 		err := json.NewDecoder(req.Body).Decode(obj.Interface())
+        context.Set(req, "decodedBody", obj.Interface())
 		if err != nil && err != io.EOF {
 			errors.Add([]string{}, DeserializationError, err.Error())
 		}
