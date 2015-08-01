@@ -73,7 +73,7 @@ func Validate(obj interface{}, req *http.Request) Errors {
 		if strings.Contains(contentType, "json") {
 			return Json(obj, req)
 		}
-		return nil
+    return Json(obj, req)
 	}
 	return nil
 }
