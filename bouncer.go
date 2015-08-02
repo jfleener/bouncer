@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"strings"
     "github.com/gorilla/context"
+    "io/ioutil"
 )
 
 const (
@@ -20,6 +21,12 @@ type BouncerHandler struct {
 	f     http.Handler
 }
 
+type BouncerPatchHandler struct {
+    iface interface{}
+    maxBodyLength int64
+    f     http.Handler
+}
+
 func NewBouncerHandler(obj interface{}, f http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		h := BouncerHandler{
@@ -30,18 +37,54 @@ func NewBouncerHandler(obj interface{}, f http.Handler) http.Handler {
 	})
 }
 
+func NewBouncerPatchHandler(obj interface{}, maxBodyLength int64, f http.Handler) http.Handler {
+    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        h := BouncerPatchHandler{
+            f:     f,
+            maxBodyLength: maxBodyLength,
+            iface: obj,
+        }
+        h.ServeHTTP(w, r)
+    })
+}
+
 func (h BouncerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
-	errs := Validate(h.iface, r)
+    errs := Validate(h.iface, r)
 
-	if len(errs) > 0 {
-		ErrorHandler(errs, w)
-		return
-	}
+    if len(errs) > 0 {
+        ErrorHandler(errs, w)
+        return
+    }
 
-	h.f.ServeHTTP(w, r)
+    h.f.ServeHTTP(w, r)
 
 }
+
+func (h BouncerPatchHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+
+    mr := http.MaxBytesReader(w, r.Body, h.maxBodyLength)
+    defer mr.Close() //also closes r.Body
+    jsonData, err := ioutil.ReadAll(mr)
+    if err != nil {
+        var errors Errors
+        errors.Add([]string{}, DeserializationError, err.Error())
+        ErrorHandler(errors, w)
+        return
+    }
+
+    _, errs := ValidateJson(h.iface, jsonData, r.Method)
+    if len(errs) > 0 {
+        ErrorHandler(errs, w)
+        return
+    }
+
+    context.Set(r, "requestBody", jsonData)
+
+    h.f.ServeHTTP(w, r)
+
+}
+
 
 // ErrorHandler simply counts the number of errors in the
 // context and, if more than 0, writes a response with an

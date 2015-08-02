@@ -3,9 +3,8 @@
   <component name="NewModuleRootManager" inherit-compiler-output="true">
     <exclude-output />
     <content url="file://$MODULE_DIR$" />
-    <orderEntry type="jdk" jdkName="Go 1.4.2" jdkType="Go SDK" />
+    <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="library" name="GOPATH &lt;go-bouncer&gt;" level="project" />
     <orderEntry type="library" name="GOPATH &lt;bouncer&gt;" level="project" />
   </component>
 </module>
