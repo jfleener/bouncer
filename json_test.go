@@ -122,7 +122,7 @@ func performJsonTest(t *testing.T, testCase jsonTestCase) {
 		//use the validator directly
 		switch testCase.ifaceType.(type) {
 		case Foo:
-			errs := ValidateJson(Foo{}, []byte(testCase.payload), testCase.method)
+			_, errs := ValidateJson(Foo{}, []byte(testCase.payload), testCase.method)
 			if testCase.shouldSucceedOnJson &&
 				errs.Len() > 0 {
 				t.Errorf("'%s' should have succeeded, but returned errors '%+v'",

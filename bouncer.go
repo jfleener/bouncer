@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"reflect"
 	"strings"
+    "github.com/gorilla/context"
 )
 
 const (
@@ -74,23 +75,25 @@ func Validate(obj interface{}, req *http.Request) Errors {
 		if strings.Contains(contentType, "json") {
 			return Json(obj, req)
 		}
-		return nil
+    return Json(obj, req)
 	}
 	return nil
 }
 
 func Json(jsonStruct interface{}, req *http.Request) Errors {
 
-	return validateJsonFromReader(jsonStruct, req.Body, req.Method)
+	body, errors := validateJsonFromReader(jsonStruct, req.Body, req.Method)
+	context.Set(req, "decodedBody", body)
+	return errors
 
 }
 
-func ValidateJson(jsonStruct interface{}, jsonData []byte, method string) Errors {
+func ValidateJson(jsonStruct interface{}, jsonData []byte, method string) (interface{}, Errors) {
 
 	return validateJsonFromReader(jsonStruct, bytes.NewReader(jsonData), method)
 }
 
-func validateJsonFromReader(jsonStruct interface{}, reader io.Reader, method string) Errors {
+func validateJsonFromReader(jsonStruct interface{}, reader io.Reader, method string) (interface{}, Errors) {
 
 	var errors Errors
 	ensureNotPointer(jsonStruct)
@@ -109,7 +112,7 @@ func validateJsonFromReader(jsonStruct interface{}, reader io.Reader, method str
 		errors = validateCreateStruct(errors, obj.Interface())
 	}
 
-	return errors
+	return obj.Interface(), errors
 
 }
 
