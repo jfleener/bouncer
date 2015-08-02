@@ -1,6 +1,7 @@
 package bouncer
 
 import (
+	"bytes"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -80,24 +81,36 @@ func Validate(obj interface{}, req *http.Request) Errors {
 
 func Json(jsonStruct interface{}, req *http.Request) Errors {
 
+	return validateJsonFromReader(jsonStruct, req.Body, req.Method)
+
+}
+
+func ValidateJson(jsonStruct interface{}, jsonData []byte, method string) Errors {
+
+	return validateJsonFromReader(jsonStruct, bytes.NewReader(jsonData), method)
+}
+
+func validateJsonFromReader(jsonStruct interface{}, reader io.Reader, method string) Errors {
+
 	var errors Errors
 	ensureNotPointer(jsonStruct)
 	obj := reflect.New(reflect.TypeOf(jsonStruct))
 
-	if req.Body != nil {
-		err := json.NewDecoder(req.Body).Decode(obj.Interface())
+	if reader != nil {
+		err := json.NewDecoder(reader).Decode(obj.Interface())
 		if err != nil && err != io.EOF {
 			errors.Add([]string{}, DeserializationError, err.Error())
 		}
 	}
 
-	if req.Method == "PATCH" {
+	if method == "PATCH" {
 		errors = validatePatchStruct(errors, obj.Interface())
-	} else if req.Method == "POST" || req.Method == "PUT" {
+	} else if method == "POST" || method == "PUT" {
 		errors = validateCreateStruct(errors, obj.Interface())
 	}
 
 	return errors
+
 }
 
 func validateCreateStruct(errors Errors, obj interface{}) Errors {

@@ -17,6 +17,7 @@ type (
 		shouldFailOnBind    bool
 		payload             string
 		contentType         string
+		testType            string
 		ifaceType           interface{}
 	}
 )
@@ -63,6 +64,51 @@ var jsonTestCases = []jsonTestCase{
 		contentType:         jsonContentType,
 		ifaceType:           Foo{},
 	},
+	{
+		description:         "Create Foo [DIRECT]",
+		method:              "POST",
+		shouldSucceedOnJson: true,
+		payload:             `{"title":"Foo Title", "content": "Foo Content"}`,
+		contentType:         jsonContentType,
+		testType:            "direct",
+		ifaceType:           Foo{},
+	},
+	{
+		description:         "Create Foo with missing fields [DIRECT]",
+		method:              "POST",
+		shouldSucceedOnJson: false,
+		payload:             `{"content": "Foo Content"}`,
+		contentType:         jsonContentType,
+		testType:            "direct",
+		ifaceType:           Foo{},
+	},
+	{
+		description:         "Create Foo with immutable fields [DIRECT]",
+		method:              "POST",
+		shouldSucceedOnJson: false,
+		payload:             `{"title":"Foo Title", "content": "Foo Content", "create_ignored":"bar"}`,
+		contentType:         jsonContentType,
+		testType:            "direct",
+		ifaceType:           Foo{},
+	},
+	{
+		description:         "Patch Foo [DIRECT]",
+		method:              "PATCH",
+		shouldSucceedOnJson: true,
+		payload:             `{"content": "New Foo Content"}`,
+		contentType:         jsonContentType,
+		testType:            "direct",
+		ifaceType:           Foo{},
+	},
+	{
+		description:         "Patch Foo with immutable fields [DIRECT]",
+		method:              "PATCH",
+		shouldSucceedOnJson: false,
+		payload:             `{"title":"Foo Title", "content": "Foo Content"}`,
+		contentType:         jsonContentType,
+		testType:            "direct",
+		ifaceType:           Foo{},
+	},
 }
 
 func TestJson(t *testing.T) {
@@ -72,6 +118,22 @@ func TestJson(t *testing.T) {
 }
 
 func performJsonTest(t *testing.T, testCase jsonTestCase) {
+	if testCase.testType == "direct" {
+		//use the validator directly
+		switch testCase.ifaceType.(type) {
+		case Foo:
+			errs := ValidateJson(Foo{}, []byte(testCase.payload), testCase.method)
+			if testCase.shouldSucceedOnJson &&
+				errs.Len() > 0 {
+				t.Errorf("'%s' should have succeeded, but returned errors '%+v'",
+					testCase.description, errs)
+			} else if !testCase.shouldSucceedOnJson && errs.Len() <= 0 {
+				t.Errorf("'%s' should have failed, but returned NO errors", testCase.description)
+			}
+		}
+
+		return
+	}
 	var payload io.Reader
 	httpRecorder := httptest.NewRecorder()
 
