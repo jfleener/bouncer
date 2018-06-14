@@ -179,6 +179,12 @@ func validateCreateStruct(errors Errors, obj interface{}) Errors {
 		fieldValue := val.Field(i).Interface()
 		zero := reflect.Zero(field.Type).Interface()
 
+		// If the field Value is a string, then trim the leading spaces
+		fieldActualValue := val.Field(i)
+		if fieldActualValue.Kind() == reflect.String {
+			fieldActualValue.SetString(strings.TrimSpace(fieldValue.(string)))
+		}
+
 		// Validate nested and embedded structs (if pointer, only do so if not nil)
 		if field.Type.Kind() == reflect.Struct ||
 			(field.Type.Kind() == reflect.Ptr && !reflect.DeepEqual(zero, fieldValue) &&
@@ -234,6 +240,12 @@ func validatePatchStruct(errors Errors, obj interface{}) Errors {
 
 		fieldValue := val.Field(i).Interface()
 		zero := reflect.Zero(field.Type).Interface()
+
+		// If the field Value is a string, then trim the leading spaces
+		fieldActualValue := val.Field(i)
+		if fieldActualValue.Kind() == reflect.String {
+			fieldActualValue.SetString(strings.TrimSpace(fieldValue.(string)))
+		}
 
 		// Validate nested and embedded structs (if pointer, only do so if not nil)
 		if field.Type.Kind() == reflect.Struct ||
