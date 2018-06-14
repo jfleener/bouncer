@@ -181,8 +181,12 @@ func validateCreateStruct(errors Errors, obj interface{}) Errors {
 
 		// If the field Value is a string, then trim the leading spaces
 		fieldActualValue := val.Field(i)
-		if fieldActualValue.Kind() == reflect.String {
-			fieldActualValue.SetString(strings.TrimSpace(fieldValue.(string)))
+		if fieldActualValue.IsValid() {
+			if fieldActualValue.CanSet() {
+				if fieldActualValue.Kind() == reflect.String {
+					fieldActualValue.SetString(strings.TrimSpace(fieldValue.(string)))
+				}
+			}
 		}
 
 		// Validate nested and embedded structs (if pointer, only do so if not nil)
@@ -243,8 +247,12 @@ func validatePatchStruct(errors Errors, obj interface{}) Errors {
 
 		// If the field Value is a string, then trim the leading spaces
 		fieldActualValue := val.Field(i)
-		if fieldActualValue.Kind() == reflect.String {
-			fieldActualValue.SetString(strings.TrimSpace(fieldValue.(string)))
+		if fieldActualValue.IsValid() {
+			if fieldActualValue.CanSet() {
+				if fieldActualValue.Kind() == reflect.String {
+					fieldActualValue.SetString(strings.TrimSpace(fieldValue.(string)))
+				}
+			}
 		}
 
 		// Validate nested and embedded structs (if pointer, only do so if not nil)
