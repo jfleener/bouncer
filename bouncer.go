@@ -180,7 +180,6 @@ func validateCreateStruct(errors Errors, obj interface{}) Errors {
 		zero := reflect.Zero(field.Type).Interface()
 
 		// If the field Value is a string, then trim the leading spaces
-		// https://stackoverflow.com/a/6396678/6611317
 		fieldActualValue := val.Field(i)
 		if fieldActualValue.IsValid() {
 			if fieldActualValue.CanSet() {
@@ -247,7 +246,6 @@ func validatePatchStruct(errors Errors, obj interface{}) Errors {
 		zero := reflect.Zero(field.Type).Interface()
 
 		// If the field Value is a string, then trim the leading spaces
-		// https://stackoverflow.com/a/6396678/6611317
 		fieldActualValue := val.Field(i)
 		if fieldActualValue.IsValid() {
 			if fieldActualValue.CanSet() {
