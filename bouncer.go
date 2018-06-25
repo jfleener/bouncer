@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"reflect"
 	"strings"
-    "github.com/gorilla/context"
-    "io/ioutil"
+
+	"github.com/gorilla/context"
 )
 
 const (
@@ -22,9 +23,9 @@ type BouncerHandler struct {
 }
 
 type BouncerPatchHandler struct {
-    iface interface{}
-    maxBodyLength int64
-    f     http.Handler
+	iface         interface{}
+	maxBodyLength int64
+	f             http.Handler
 }
 
 func NewBouncerHandler(obj interface{}, f http.Handler) http.Handler {
@@ -38,53 +39,52 @@ func NewBouncerHandler(obj interface{}, f http.Handler) http.Handler {
 }
 
 func NewBouncerPatchHandler(obj interface{}, maxBodyLength int64, f http.Handler) http.Handler {
-    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-        h := BouncerPatchHandler{
-            f:     f,
-            maxBodyLength: maxBodyLength,
-            iface: obj,
-        }
-        h.ServeHTTP(w, r)
-    })
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		h := BouncerPatchHandler{
+			f:             f,
+			maxBodyLength: maxBodyLength,
+			iface:         obj,
+		}
+		h.ServeHTTP(w, r)
+	})
 }
 
 func (h BouncerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
-    errs := Validate(h.iface, r)
+	errs := Validate(h.iface, r)
 
-    if len(errs) > 0 {
-        ErrorHandler(errs, w)
-        return
-    }
+	if len(errs) > 0 {
+		ErrorHandler(errs, w)
+		return
+	}
 
-    h.f.ServeHTTP(w, r)
+	h.f.ServeHTTP(w, r)
 
 }
 
 func (h BouncerPatchHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
-    mr := http.MaxBytesReader(w, r.Body, h.maxBodyLength)
-    defer mr.Close() //also closes r.Body
-    jsonData, err := ioutil.ReadAll(mr)
-    if err != nil {
-        var errors Errors
-        errors.Add([]string{}, DeserializationError, err.Error())
-        ErrorHandler(errors, w)
-        return
-    }
+	mr := http.MaxBytesReader(w, r.Body, h.maxBodyLength)
+	defer mr.Close() //also closes r.Body
+	jsonData, err := ioutil.ReadAll(mr)
+	if err != nil {
+		var errors Errors
+		errors.Add([]string{}, DeserializationError, err.Error())
+		ErrorHandler(errors, w)
+		return
+	}
 
-    _, errs := ValidateJson(h.iface, jsonData, r.Method)
-    if len(errs) > 0 {
-        ErrorHandler(errs, w)
-        return
-    }
+	_, errs := ValidateJson(h.iface, jsonData, r.Method)
+	if len(errs) > 0 {
+		ErrorHandler(errs, w)
+		return
+	}
 
-    context.Set(r, "requestBody", jsonData)
+	context.Set(r, "requestBody", jsonData)
 
-    h.f.ServeHTTP(w, r)
+	h.f.ServeHTTP(w, r)
 
 }
-
 
 // ErrorHandler simply counts the number of errors in the
 // context and, if more than 0, writes a response with an
@@ -118,7 +118,7 @@ func Validate(obj interface{}, req *http.Request) Errors {
 		if strings.Contains(contentType, "json") {
 			return Json(obj, req)
 		}
-    return Json(obj, req)
+		return Json(obj, req)
 	}
 	return nil
 }
@@ -180,11 +180,13 @@ func validateCreateStruct(errors Errors, obj interface{}) Errors {
 		zero := reflect.Zero(field.Type).Interface()
 
 		// If the field Value is a string, then trim the leading spaces
-		fieldActualValue := val.Field(i)
-		if fieldActualValue.IsValid() {
-			if fieldActualValue.CanSet() {
-				if fieldActualValue.Kind() == reflect.String {
-					fieldActualValue.SetString(strings.TrimSpace(fieldValue.(string)))
+		if field.Tag.Get("notrim") != "true" {
+			fieldActualValue := val.Field(i)
+			if fieldActualValue.IsValid() {
+				if fieldActualValue.CanSet() {
+					if fieldActualValue.Kind() == reflect.String {
+						fieldActualValue.SetString(strings.TrimSpace(fieldValue.(string)))
+					}
 				}
 			}
 		}
@@ -246,11 +248,13 @@ func validatePatchStruct(errors Errors, obj interface{}) Errors {
 		zero := reflect.Zero(field.Type).Interface()
 
 		// If the field Value is a string, then trim the leading spaces
-		fieldActualValue := val.Field(i)
-		if fieldActualValue.IsValid() {
-			if fieldActualValue.CanSet() {
-				if fieldActualValue.Kind() == reflect.String {
-					fieldActualValue.SetString(strings.TrimSpace(fieldValue.(string)))
+		if field.Tag.Get("notrim") != "true" {
+			fieldActualValue := val.Field(i)
+			if fieldActualValue.IsValid() {
+				if fieldActualValue.CanSet() {
+					if fieldActualValue.Kind() == reflect.String {
+						fieldActualValue.SetString(strings.TrimSpace(fieldValue.(string)))
+					}
 				}
 			}
 		}
