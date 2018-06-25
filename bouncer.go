@@ -180,11 +180,13 @@ func validateCreateStruct(errors Errors, obj interface{}) Errors {
 		zero := reflect.Zero(field.Type).Interface()
 
 		// If the field Value is a string, then trim the leading spaces
-		fieldActualValue := val.Field(i)
-		if fieldActualValue.IsValid() {
-			if fieldActualValue.CanSet() {
-				if fieldActualValue.Kind() == reflect.String {
-					fieldActualValue.SetString(strings.TrimSpace(fieldValue.(string)))
+		if field.Tag.Get("notrim") == "true" {
+			fieldActualValue := val.Field(i)
+			if fieldActualValue.IsValid() {
+				if fieldActualValue.CanSet() {
+					if fieldActualValue.Kind() == reflect.String {
+						fieldActualValue.SetString(strings.TrimSpace(fieldValue.(string)))
+					}
 				}
 			}
 		}
@@ -246,11 +248,13 @@ func validatePatchStruct(errors Errors, obj interface{}) Errors {
 		zero := reflect.Zero(field.Type).Interface()
 
 		// If the field Value is a string, then trim the leading spaces
-		fieldActualValue := val.Field(i)
-		if fieldActualValue.IsValid() {
-			if fieldActualValue.CanSet() {
-				if fieldActualValue.Kind() == reflect.String {
-					fieldActualValue.SetString(strings.TrimSpace(fieldValue.(string)))
+		if field.Tag.Get("notrim") == "true" {
+			fieldActualValue := val.Field(i)
+			if fieldActualValue.IsValid() {
+				if fieldActualValue.CanSet() {
+					if fieldActualValue.Kind() == reflect.String {
+						fieldActualValue.SetString(strings.TrimSpace(fieldValue.(string)))
+					}
 				}
 			}
 		}
