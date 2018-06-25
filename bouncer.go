@@ -180,7 +180,7 @@ func validateCreateStruct(errors Errors, obj interface{}) Errors {
 		zero := reflect.Zero(field.Type).Interface()
 
 		// If the field Value is a string, then trim the leading spaces
-		if field.Tag.Get("notrim") == "true" {
+		if field.Tag.Get("notrim") != "true" {
 			fieldActualValue := val.Field(i)
 			if fieldActualValue.IsValid() {
 				if fieldActualValue.CanSet() {
@@ -248,7 +248,7 @@ func validatePatchStruct(errors Errors, obj interface{}) Errors {
 		zero := reflect.Zero(field.Type).Interface()
 
 		// If the field Value is a string, then trim the leading spaces
-		if field.Tag.Get("notrim") == "true" {
+		if field.Tag.Get("notrim") != "true" {
 			fieldActualValue := val.Field(i)
 			if fieldActualValue.IsValid() {
 				if fieldActualValue.CanSet() {
