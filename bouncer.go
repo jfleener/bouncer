@@ -278,6 +278,18 @@ func validatePatchStruct(errors Errors, obj interface{}) Errors {
 				errors.Add([]string{name}, ImmutableError, "Immutable")
 			}
 		}
+
+		if strings.Index(field.Tag.Get("patch"), "required") > -1 {
+			if reflect.DeepEqual(zero, fieldValue) {
+				name := field.Name
+				if j := field.Tag.Get("json"); j != "" {
+					name = j
+				} else if f := field.Tag.Get("form"); f != "" {
+					name = f
+				}
+				errors.Add([]string{name}, RequiredError, "Required")
+			}
+		}
 	}
 	return errors
 
