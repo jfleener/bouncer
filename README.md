@@ -18,3 +18,26 @@ using "-" for create or patch tags indicates this field is immutable and will th
 (and not the zero value for that type)
 
 By default, the leading and trailing spaces are trimmed. You can, however, use the struct tag `notrim:"true"` to keep those spaces.
+
+## Caveat
+
+If you make a field `create:"required"` or `patch:"required"`, then you could not pass trivial/default value of that type. For example, if you set
+
+```go
+    
+    type Foo struct {
+        Id       int64   `json:"id" create:"required"`
+        Name     string  `json:"name" create:"required"`
+        Active   bool    `json:"password" create:"required"`
+    }
+```
+
+Then you could not pass the following json on POST request
+
+```json
+{
+    "id": 0,
+    "name": "",
+    "active": false
+}
+```
