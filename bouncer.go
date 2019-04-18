@@ -3,6 +3,7 @@ package bouncer
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -50,7 +51,6 @@ func NewBouncerPatchHandler(obj interface{}, maxBodyLength int64, f http.Handler
 }
 
 func (h BouncerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-
 	errs := Validate(h.iface, r)
 
 	if len(errs) > 0 {
@@ -63,27 +63,108 @@ func (h BouncerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h BouncerPatchHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	var errors Errors
 
 	mr := http.MaxBytesReader(w, r.Body, h.maxBodyLength)
 	defer mr.Close() //also closes r.Body
 	jsonData, err := ioutil.ReadAll(mr)
 	if err != nil {
-		var errors Errors
 		errors.Add([]string{}, DeserializationError, err.Error())
 		ErrorHandler(errors, w)
 		return
 	}
 
-	_, errs := ValidateJson(h.iface, jsonData, r.Method)
+	// validate json, potentially modify it
+	mergeObject, errs := ValidateJson(h.iface, jsonData, r.Method)
 	if len(errs) > 0 {
 		ErrorHandler(errs, w)
 		return
 	}
 
-	context.Set(r, "requestBody", jsonData)
+	// marshall the json object back to a string
+	mergeJson, err := json.Marshal(mergeObject)
+	if err != nil {
+		errors.Add([]string{}, DeserializationError, err.Error())
+		ErrorHandler(errors, w)
+		return
+	}
+
+	// ensure the final object only contains keys that it started with
+	finalJson, err := CreateEncodedInterfaceFromOriginal(jsonData, mergeJson)
+	if err != nil {
+		errors.Add([]string{}, DeserializationError, err.Error())
+		ErrorHandler(errors, w)
+		return
+	}
+
+	context.Set(r, "requestBody", finalJson)
 
 	h.f.ServeHTTP(w, r)
 
+}
+
+func CreateEncodedInterfaceFromOriginal(originalJson []byte, latestJson []byte) ([]byte, error) {
+	var originalInterface interface{}
+	var latestInterface interface{}
+
+	// unmarshal originalJson patch input to a generic interface
+	err := json.Unmarshal(originalJson, &originalInterface)
+	if err != nil {
+		return nil, err
+	}
+
+	// unmarshal modified patch input to a generic interface
+	err = json.Unmarshal(latestJson, &latestInterface)
+	if err != nil {
+		return nil, err
+	}
+
+	// Merge the modified input into the originalJson, ignoring fields that didn't exist in the originalJson (these were added when unmarshalled)
+	finalInterface, err := MergeInterface(originalInterface, latestInterface)
+	if err != nil {
+		return nil, err
+	}
+
+	finalJson, err := json.Marshal(finalInterface)
+	if err != nil {
+		return nil, err
+	}
+
+	return finalJson, nil
+}
+
+func MergeInterface(dest interface{}, src interface{}) (interface{}, error) {
+	var err error
+
+	switch destMap := dest.(type) {
+	case map[string]interface{}:
+		if srcMap, ok := src.(map[string]interface{}); ok {
+			// somehow the types are different. This shouldn't be possible
+			for key := range destMap {
+				// if src interface doesn't have the key, skip (struct is ignoring it, so we can too)
+				if _, ok := srcMap[key]; !ok {
+					continue
+				}
+
+				// potentially update the value of destMap for the current key
+				destMap[key], err = MergeInterface(destMap[key], srcMap[key])
+				if err != nil {
+					return nil, err
+				}
+			}
+
+			// all keys updated or omitted, return the new interface
+			return destMap, nil
+		}
+		return nil, errors.New("fatal issue merging sanitized patch data")
+	case []interface{}:
+		// no naive way to know which items in an unordered list are associated
+		// so arrays will have to be passed through unmodified
+		return dest, nil
+	default:
+		// if we get here it shouldn't be from a top level call, so must be recusrive from a range over the original patch fields
+		return src, nil
+	}
 }
 
 // ErrorHandler simply counts the number of errors in the
@@ -124,7 +205,6 @@ func Validate(obj interface{}, req *http.Request) Errors {
 }
 
 func Json(jsonStruct interface{}, req *http.Request) Errors {
-
 	body, errors := validateJsonFromReader(jsonStruct, req.Body, req.Method)
 	context.Set(req, "decodedBody", body)
 	return errors
@@ -132,12 +212,10 @@ func Json(jsonStruct interface{}, req *http.Request) Errors {
 }
 
 func ValidateJson(jsonStruct interface{}, jsonData []byte, method string) (interface{}, Errors) {
-
 	return validateJsonFromReader(jsonStruct, bytes.NewReader(jsonData), method)
 }
 
 func validateJsonFromReader(jsonStruct interface{}, reader io.Reader, method string) (interface{}, Errors) {
-
 	var errors Errors
 	ensureNotPointer(jsonStruct)
 	obj := reflect.New(reflect.TypeOf(jsonStruct))
